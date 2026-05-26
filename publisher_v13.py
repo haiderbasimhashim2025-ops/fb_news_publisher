@@ -101,6 +101,21 @@ atexit.register(exit_handler)
 def init_db():
     """تهيئة قاعدة البيانات"""
     try:
+        # حذف قاعدة البيانات القديمة إذا كانت غير متوافقة
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            cursor = conn.cursor()
+            cursor.execute('PRAGMA table_info(news)')
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'saved_at' not in columns or 'posted_at' not in columns:
+                conn.close()
+                os.remove(DB_FILE)
+                print("🔄 تم حذف قاعدة البيانات القديمة - إعادة الإنشاء...")
+            else:
+                conn.close()
+        except:
+            pass
+        
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
         cursor.execute('''
@@ -111,7 +126,7 @@ def init_db():
                 source TEXT,
                 pub_date TEXT,
                 image_url TEXT,
-                saved_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                saved_at TEXT,
                 posted_at TEXT
             )
         ''')
