@@ -1,0 +1,25 @@
+#!/bin/bash
+# أوامر إعداد نظام النشر على PythonAnywhere
+# انسخ والصق هذه الأوامر في Bash console
+
+# الخطوة 1: إنشاء virtual environment
+python3 -m venv ~/myenv
+source ~/myenv/bin/activate
+
+# الخطوة 2: تثبيت المكتبات
+pip install requests feedparser beautifulsoup4 Pillow python-bidi arabic_reshaper
+
+# الخطوة 3: اختبار النظام
+python3 ~/publisher.py
+
+# الخطوة 4: إضافة cron job
+crontab -e
+
+# ثم أضف هذا السطر في نهاية الملف:
+# */5 * * * * source ~/myenv/bin/activate && cd ~ && python3 ~/publisher.py >> ~/publisher.log 2>&1
+
+# الخطوة 5: التحقق من cron job
+crontab -l
+
+# الخطوة 6: مراقبة السجلات (في terminal منفصل)
+tail -f ~/publisher.log

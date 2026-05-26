@@ -1,0 +1,54 @@
+name: نشر الأخبار التلقائي 24/7
+
+on:
+  schedule:
+    - cron: '* * * * *'   # كل دقيقة - نشر مستمر 24/7
+  workflow_dispatch:          # تشغيل يدوي عند الحاجة
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+
+    steps:
+      - name: استنساخ المستودع
+        uses: actions/checkout@v4
+
+      - name: إعداد Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: تثبيت المكتبات
+        run: |
+          pip install -q requests feedparser beautifulsoup4 Pillow arabic-reshaper python-bidi lxml
+
+      - name: تثبيت الخطوط العربية
+        run: |
+          sudo apt-get install -y -q fonts-noto-core fonts-noto fonts-noto-extra 2>/dev/null || true
+          fc-cache -fv 2>/dev/null || true
+
+      - name: استعادة قاعدة البيانات من التخزين المؤقت
+        uses: actions/cache@v3
+        with:
+          path: /tmp/published.db
+          key: published-db-${{ github.run_id }}
+          restore-keys: |
+            published-db-
+
+      - name: تشغيل نظام النشر
+        env:
+          PAGE_SALSSAL: ${{ secrets.PAGE_SALSSAL }}
+          PAGE_CHAI: ${{ secrets.PAGE_CHAI }}
+          PAGE_TABOGA: ${{ secrets.PAGE_TABOGA }}
+          PAGE_TEIN: ${{ secrets.PAGE_TEIN }}
+          DB_PATH: /tmp/published.db
+        run: python publisher_v10.py
+
+      - name: حفظ قاعدة البيانات في التخزين المؤقت
+        if: always()
+        uses: actions/cache@v3
+        with:
+          path: /tmp/published.db
+          key: published-db-${{ github.run_id }}
