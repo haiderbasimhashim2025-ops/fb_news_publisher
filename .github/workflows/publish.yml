@@ -58,7 +58,7 @@ jobs:
           PAGE_TEIN: ${{ secrets.PAGE_TEIN }}
         run: |
           echo "🚀 بدء النشر المستمر..."
-          python publisher_v13.py
+          python publisher_v14.py
         timeout-minutes: 1440
         continue-on-error: true
       
