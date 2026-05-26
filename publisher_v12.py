@@ -269,7 +269,7 @@ def cleanup_old_news():
 
 def main_loop():
     """الحلقة الرئيسية"""
-    global running
+    global running, posts_count, errors_count, start_time
     
     print("🚀 بدء نظام النشر المستمر 24/7 على GitHub Actions")
     print("=" * 60)
