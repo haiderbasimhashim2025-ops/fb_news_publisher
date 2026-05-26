@@ -8,7 +8,7 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 1440  # 24 ساعة - نشر مستمر بدون توقف
 
     steps:
       - name: استنساخ المستودع
@@ -37,14 +37,15 @@ jobs:
           restore-keys: |
             published-db-
 
-      - name: تشغيل نظام النشر
+      - name: 🚀 بدء النشر المستمر والمفتوح 24/7
         env:
           PAGE_SALSSAL: ${{ secrets.PAGE_SALSSAL }}
           PAGE_CHAI: ${{ secrets.PAGE_CHAI }}
           PAGE_TABOGA: ${{ secrets.PAGE_TABOGA }}
           PAGE_TEIN: ${{ secrets.PAGE_TEIN }}
-          DB_PATH: /tmp/published.db
-        run: python publisher_v10.py
+        run: |
+          python publisher_v11.py
+        timeout-minutes: 1440
 
       - name: حفظ قاعدة البيانات في التخزين المؤقت
         if: always()
