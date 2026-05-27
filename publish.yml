@@ -1,4 +1,4 @@
-name: ⚡ نشر الأخبار السريع جداً 24/7 - v21 معالجة متوازية
+name: ⚡ نشر الأخبار السريع 24/7 - v22 تصاميم احترافية
 
 on:
   workflow_dispatch:
@@ -57,8 +57,8 @@ jobs:
           PAGE_TABOGA: ${{ secrets.PAGE_TABOGA }}
           PAGE_TEIN: ${{ secrets.PAGE_TEIN }}
         run: |
-          echo "⚡ بدء النشر السريع - النسخة 21 مع المعالجة المتوازية..."
-          python publisher_v21.py
+          echo "⚡ بدء النشر - النسخة 22 مع التصاميم الاحترافية وبدون ذكر المصدر..."
+          python publisher_v22.py
         timeout-minutes: 1440
         continue-on-error: true
       
