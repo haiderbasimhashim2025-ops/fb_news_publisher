@@ -53,7 +53,7 @@ def get_font(size):
 # إعدادات الصفحات مع الألوان الاحترافية المعتمدة
 # =====================================================
 PAGES_CONFIG = {
-    'SALSSAL': {
+    'salssal': {
         'page_id': '1104346172760947',
         'name': 'صلصال',
         'token': os.environ.get('PAGE_SALSSAL', '').split('|')[1] if '|' in os.environ.get('PAGE_SALSSAL', '') else '',
@@ -66,7 +66,7 @@ PAGES_CONFIG = {
         'overlay_color':  (20, 10, 0),
         'deco_color':     (255, 220, 120),
     },
-    'CHAI': {
+    'chai': {
         'page_id': '1078693568663658',
         'name': 'چاي سادة',
         'token': os.environ.get('PAGE_CHAI', '').split('|')[1] if '|' in os.environ.get('PAGE_CHAI', '') else '',
@@ -79,7 +79,7 @@ PAGES_CONFIG = {
         'overlay_color':  (10, 5, 0),
         'deco_color':     (212, 175, 55),
     },
-    'TABOGA': {
+    'taboga': {
         'page_id': '1063874040148711',
         'name': 'طابوگة',
         'token': os.environ.get('PAGE_TABOGA', '').split('|')[1] if '|' in os.environ.get('PAGE_TABOGA', '') else '',
@@ -92,7 +92,7 @@ PAGES_CONFIG = {
         'overlay_color':  (5, 3, 0),
         'deco_color':     (212, 175, 55),
     },
-    'TEIN': {
+    'tein': {
         'page_id': '1094102397116855',
         'name': 'طين',
         'token': os.environ.get('PAGE_TEIN', '').split('|')[1] if '|' in os.environ.get('PAGE_TEIN', '') else '',
@@ -450,14 +450,17 @@ def create_post_image_fast(title, description, image_url, page_config):
 
         # ===== تعتيم تدريجي ناعم =====
         ov_h = ih * 52 // 100
+        overlay_img = Image.new("RGBA", (iw, ov_h), (0, 0, 0, 0))
+        overlay_draw = ImageDraw.Draw(overlay_img)
+        r, g, b = p['overlay_color']
         for i in range(ov_h):
             t     = i / ov_h
             alpha = int(30 + 160 * (t ** 0.7))
-            r, g, b = p['overlay_color']
-            overlay_line = Image.new("RGBA", (iw, 1), (r, g, b, alpha))
-            c_rgba = canvas.convert("RGBA")
-            c_rgba.paste(overlay_line, (ix, iy + ih - ov_h + i), overlay_line)
-            canvas = c_rgba.convert("RGB")
+            overlay_draw.line([(0, i), (iw, i)], fill=(r, g, b, alpha))
+        
+        c_rgba = canvas.convert("RGBA")
+        c_rgba.paste(overlay_img, (ix, iy + ih - ov_h), overlay_img)
+        canvas = c_rgba.convert("RGB")
 
         draw = ImageDraw.Draw(canvas)
 
