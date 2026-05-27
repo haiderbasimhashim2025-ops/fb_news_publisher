@@ -307,148 +307,206 @@ def download_image_fast(image_url):
 # دوال التصميم المحسّنة للسرعة
 # =====================================================
 def draw_gradient_rect_fast(img, x1, y1, x2, y2, color_start, color_end):
-    """رسم تدرج بسرعة"""
+    """رسم مستطيل بتدرج لوني عمودي"""
     draw  = ImageDraw.Draw(img)
     steps = max(y2 - y1, 1)
-    for i in range(0, steps, max(1, steps // 50)):  # تقليل الخطوات
+    for i in range(steps):
         t = i / (steps - 1) if steps > 1 else 0
         r = int(color_start[0] + (color_end[0] - color_start[0]) * t)
         g = int(color_start[1] + (color_end[1] - color_start[1]) * t)
         b = int(color_start[2] + (color_end[2] - color_start[2]) * t)
-        draw.line([(x1, y1 + i), (x2, y1 + i)], fill=(r, g, b), width=max(1, steps // 50))
+        draw.line([(x1, y1 + i), (x2, y1 + i)], fill=(r, g, b))
 
 def draw_ornament_fast(draw, cx, y, color):
-    """رسم زخرفة بسرعة"""
-    draw.rectangle([cx - 180, y+3, cx - 25, y+5], fill=color)
-    draw.rectangle([cx + 25, y+3, cx + 180, y+5], fill=color)
-    draw.polygon([(cx, y-4), (cx+10, y+4), (cx, y+12), (cx-10, y+4)], fill=color)
+    """رسم زخرفة معينية مركزية مع خطوط جانبية"""
+    lw = 180
+    draw.rectangle([cx - lw - 25, y+3, cx - 25, y+5], fill=color)
+    draw.rectangle([cx + 25, y+3, cx + lw + 25, y+5], fill=color)
+    pts = [(cx, y-4), (cx+10, y+4), (cx, y+12), (cx-10, y+4)]
+    draw.polygon(pts, fill=color)
 
 def draw_corner_ornament_fast(draw, x, y, size, color, corner="tl"):
-    """رسم زخرفة زاوية بسرعة"""
+    """رسم زخرفة زاوية احترافية"""
     s = size
     if corner == "tl":
-        draw.line([(x, y), (x+s, y)], fill=color, width=2)
-        draw.line([(x, y), (x, y+s)], fill=color, width=2)
+        draw.line([(x, y), (x+s, y)], fill=color, width=3)
+        draw.line([(x, y), (x, y+s)], fill=color, width=3)
     elif corner == "tr":
-        draw.line([(x-s, y), (x, y)], fill=color, width=2)
-        draw.line([(x, y), (x, y+s)], fill=color, width=2)
+        draw.line([(x-s, y), (x, y)], fill=color, width=3)
+        draw.line([(x, y), (x, y+s)], fill=color, width=3)
     elif corner == "bl":
-        draw.line([(x, y-s), (x, y)], fill=color, width=2)
-        draw.line([(x, y), (x+s, y)], fill=color, width=2)
+        draw.line([(x, y-s), (x, y)], fill=color, width=3)
+        draw.line([(x, y), (x+s, y)], fill=color, width=3)
     elif corner == "br":
-        draw.line([(x, y-s), (x, y)], fill=color, width=2)
-        draw.line([(x-s, y), (x, y)], fill=color, width=2)
+        draw.line([(x, y-s), (x, y)], fill=color, width=3)
+        draw.line([(x-s, y), (x, y)], fill=color, width=3)
 
-def draw_text_with_glow_fast(img, text, font, cx, y, text_color, glow_color, glow_radius=2):
-    """رسم نص مع توهج بسرعة"""
-    draw = ImageDraw.Draw(img)
-    bbox = draw.textbbox((0, 0), text, font=font)
+def draw_text_with_glow_fast(img, text, font, cx, y, text_color, glow_color, glow_radius=4):
+    """رسم نص مع تأثير توهج احترافي"""
+    glow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    gd   = ImageDraw.Draw(glow_layer)
+    bbox = gd.textbbox((0, 0), text, font=font)
     tw   = bbox[2] - bbox[0]
     tx   = cx - tw // 2
-    
-    # رسم التوهج بسرعة
-    for dx in range(-glow_radius, glow_radius + 1, 1):
-        for dy in range(-glow_radius, glow_radius + 1, 1):
-            if dx != 0 or dy != 0:
-                draw.text((tx + dx, y + dy), text, font=font, fill=glow_color)
-    
-    # رسم النص الأساسي
-    draw.text((tx, y), text, font=font, fill=text_color)
+    for dx in range(-glow_radius, glow_radius + 1):
+        for dy in range(-glow_radius, glow_radius + 1):
+            if dx*dx + dy*dy <= glow_radius*glow_radius:
+                gd.text((tx+dx, y+dy), text, font=font, fill=(*glow_color, 80))
+    glow_blur = glow_layer.filter(ImageFilter.GaussianBlur(glow_radius))
+    img_rgba  = img.convert("RGBA")
+    img_rgba  = Image.alpha_composite(img_rgba, glow_blur)
+    img       = img_rgba.convert("RGB")
+    draw      = ImageDraw.Draw(img)
+    draw.text((tx+1, y+1), text, font=font, fill=(0, 0, 0))
+    draw.text((tx, y),     text, font=font, fill=text_color)
     return img
 
 def wrap_text(draw, text, font, max_width):
     """تقسيم النص إلى أسطر"""
-    lines = []
-    words = text.split()
-    current_line = ""
+    words   = text.split()
+    lines   = []
+    current = []
     for word in words:
-        test_line = current_line + " " + word if current_line else word
-        bbox = draw.textbbox((0, 0), test_line, font=font)
-        if bbox[2] - bbox[0] <= max_width:
-            current_line = test_line
-        else:
-            if current_line:
-                lines.append(current_line)
-            current_line = word
-    if current_line:
-        lines.append(current_line)
+        current.append(word)
+        test = ar(" ".join(current))
+        bbox = draw.textbbox((0, 0), test, font=font)
+        if bbox[2] - bbox[0] > max_width:
+            if len(current) > 1:
+                current.pop()
+                lines.append(ar(" ".join(current)))
+                current = [word]
+            else:
+                lines.append(ar(word))
+                current = []
+    if current:
+        lines.append(ar(" ".join(current)))
     return lines
 
 def create_post_image_fast(title, description, image_url, page_config):
-    """إنشاء صورة المنشور بسرعة"""
+    """إنشاء صورة المنشور بالتصميم الاحترافي المعتمد"""
     try:
         p = page_config
-        W, BAR, OB1, OB2, GAP, PAD = 1200, 110, 10, 3, 5, 8
-        IH = 630
-        H = BAR * 2 + IH
 
-        # تحميل الصورة بسرعة
+        # ===== الأبعاد =====
+        W   = 1200
+        BAR = 110
+        OB1 = 10
+        OB2 = 3
+        GAP = 5
+        PAD = OB1 + OB2 + GAP + 8
+        IH  = 630
+        H   = BAR * 2 + IH
+
+        # ===== تحميل صورة الخبر =====
         news_image = None
         if image_url:
             news_image = download_image_fast(image_url)
 
-        # إنشاء الخلفية
+        # ===== الخلفية =====
         canvas = Image.new("RGB", (W, H), p['bar_grad_start'])
-        draw_gradient_rect_fast(canvas, 0, 0, W, BAR, p['bar_grad_start'], p['bar_grad_end'])
-        draw_gradient_rect_fast(canvas, 0, BAR + IH, W, H, p['bar_grad_end'], p['bar_grad_start'])
+
+        # ===== تدرج الشريطين =====
+        draw_gradient_rect_fast(canvas, 0, 0, W, BAR,
+                           p['bar_grad_start'], p['bar_grad_end'])
+        draw_gradient_rect_fast(canvas, 0, BAR + IH, W, H,
+                           p['bar_grad_end'], p['bar_grad_start'])
 
         draw = ImageDraw.Draw(canvas)
 
-        # الحدود
+        # ===== الحدود المزدوجة =====
         draw.rectangle([0, 0, W-1, H-1], outline=p['border1'], width=OB1)
         m = OB1 + GAP
         draw.rectangle([m, m, W-1-m, H-1-m], outline=p['border2'], width=OB2)
 
-        # صورة الخبر
-        ix = PAD + OB1 + OB2 + GAP + 8
+        # ===== خطوط الفصل =====
+        sep_y = BAR
+        draw.rectangle([0, sep_y - OB1, W, sep_y], fill=p['border1'])
+        draw.rectangle([m, sep_y - OB1 - GAP - OB2, W-m, sep_y - OB1 - GAP],
+                       fill=p['border2'])
+        sep_y2 = BAR + IH
+        draw.rectangle([0, sep_y2, W, sep_y2 + OB1], fill=p['border1'])
+        draw.rectangle([m, sep_y2 + OB1 + GAP, W-m, sep_y2 + OB1 + GAP + OB2],
+                       fill=p['border2'])
+
+        # ===== صورة الخبر =====
+        ix = PAD
         iy = BAR + PAD // 2
-        iw = W - (ix - PAD) * 2
+        iw = W - PAD * 2
         ih = IH - PAD
 
         if news_image:
             news_resized = news_image.resize((iw, ih), Image.LANCZOS)
+            enhancer     = ImageEnhance.Contrast(news_resized)
+            news_resized = enhancer.enhance(1.1)
         else:
+            # خلفية رمادية داكنة عند غياب الصورة
             news_resized = Image.new("RGB", (iw, ih), (40, 40, 40))
 
         canvas.paste(news_resized, (ix, iy))
 
-        # حدود الصورة
-        draw.rectangle([ix-OB2-2, iy-OB2-2, ix+iw+OB2+1, iy+ih+OB2+1], outline=p['border2'], width=OB2)
+        # ===== حدود داخلية حول الصورة =====
+        draw.rectangle([ix-OB2-2, iy-OB2-2, ix+iw+OB2+1, iy+ih+OB2+1],
+                       outline=p['border2'], width=OB2)
 
-        # عنوان الخبر
-        title_font = get_font(45)
-        lines = wrap_text(draw, title, title_font, iw - 100)
-        line_h = 55
-        total_h = len(lines) * line_h
-        ty = iy + ih - total_h - 28
-        cx = W // 2
+        # ===== تعتيم تدريجي ناعم =====
+        ov_h = ih * 52 // 100
+        for i in range(ov_h):
+            t     = i / ov_h
+            alpha = int(30 + 160 * (t ** 0.7))
+            r, g, b = p['overlay_color']
+            overlay_line = Image.new("RGBA", (iw, 1), (r, g, b, alpha))
+            c_rgba = canvas.convert("RGBA")
+            c_rgba.paste(overlay_line, (ix, iy + ih - ov_h + i), overlay_line)
+            canvas = c_rgba.convert("RGB")
+
+        draw = ImageDraw.Draw(canvas)
+
+        # ===== عنوان الخبر على الصورة =====
+        title_font = get_font(50)
+        lines      = wrap_text(draw, title, title_font, iw - 100)
+        line_h     = 65
+        total_h    = len(lines) * line_h
+        ty         = iy + ih - total_h - 28
+        cx         = W // 2
 
         for line in lines:
-            canvas = draw_text_with_glow_fast(canvas, line, title_font, cx, ty, (255, 255, 255), p['glow'], glow_radius=2)
-            ty += line_h
+            canvas = draw_text_with_glow_fast(canvas, line, title_font, cx, ty,
+                                         (255, 255, 255), p['glow'], glow_radius=4)
+            draw   = ImageDraw.Draw(canvas)
+            ty    += line_h
 
-        # اسم الصفحة
-        name_font = get_font(60)
-        name_ar = ar(p['name'])
-        draw = ImageDraw.Draw(canvas)
-        bbox = draw.textbbox((0, 0), name_ar, font=name_font)
-        nh = bbox[3] - bbox[1]
+        # ===== اسم الصفحة في الشريطين =====
+        name_font = get_font(64)
+        name_ar   = ar(p['name'])
+        bbox      = draw.textbbox((0, 0), name_ar, font=name_font)
+        nh        = bbox[3] - bbox[1]
 
-        ny1 = (BAR - nh) // 2 - 5
-        canvas = draw_text_with_glow_fast(canvas, name_ar, name_font, W//2, ny1, p['bar_text'], p['glow'], glow_radius=3)
+        # شريط علوي
+        ny1    = (BAR - nh) // 2 - 5
+        canvas = draw_text_with_glow_fast(canvas, name_ar, name_font, W//2, ny1,
+                                      p['bar_text'], p['glow'], glow_radius=5)
+        draw   = ImageDraw.Draw(canvas)
 
+        # شريط سفلي
         bot_top = BAR + IH + OB1
-        ny2 = bot_top + (BAR - OB1 - nh) // 2 - 5
-        canvas = draw_text_with_glow_fast(canvas, name_ar, name_font, W//2, ny2, p['bar_text'], p['glow'], glow_radius=3)
+        ny2     = bot_top + (BAR - OB1 - nh) // 2 - 5
+        canvas  = draw_text_with_glow_fast(canvas, name_ar, name_font, W//2, ny2,
+                                       p['bar_text'], p['glow'], glow_radius=5)
+        draw    = ImageDraw.Draw(canvas)
 
-        # الزخارف
-        draw = ImageDraw.Draw(canvas)
+        # ===== زخارف معينية =====
         draw_ornament_fast(draw, W//2, (BAR - 10) // 2, p['deco_color'])
         draw_ornament_fast(draw, W//2, bot_top + (BAR - OB1) // 2 - 5, p['deco_color'])
 
-        corner_s = 25
-        margin = OB1 + GAP + 8
-        for cx_c, cy_c, pos in [(margin, margin, "tl"), (W - margin, margin, "tr"), (margin, H - margin, "bl"), (W - margin, H - margin, "br")]:
+        # ===== زخارف الزوايا =====
+        corner_s = 30
+        margin   = OB1 + GAP + 8
+        for cx_c, cy_c, pos in [
+            (margin, margin, "tl"),
+            (W - margin, margin, "tr"),
+            (margin, H - margin, "bl"),
+            (W - margin, H - margin, "br"),
+        ]:
             draw_corner_ornament_fast(draw, cx_c, cy_c, corner_s, p['deco_color'], pos)
 
         return canvas
