@@ -1,82 +1,71 @@
-name: ⚡ نشر الأخبار السريع 24/7 - v22 تصاميم احترافية
+name: 🚀 نشر الأخبار 24/7 - v23 مستمر بدون توقف
 
 on:
   workflow_dispatch:
   schedule:
-    # تشغيل كل 10 ثواني - نشر سريع جداً
-    - cron: '*/1 * * * *'
+    - cron: '*/5 * * * *'
   push:
     branches:
       - main
 
+# إلغاء التشغيلات القديمة والاحتفاظ بالأحدث فقط
+concurrency:
+  group: news-publisher
+  cancel-in-progress: true
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 1440  # 24 ساعة
-    
+    timeout-minutes: 350
+
     steps:
       - name: 📥 استخراج الملفات
         uses: actions/checkout@v4
-      
+
       - name: 🐍 إعداد Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      
+
       - name: 📦 تثبيت المكتبات
         run: |
           pip install -q requests feedparser beautifulsoup4 Pillow arabic-reshaper python-bidi lxml
-      
+
       - name: 🎨 تثبيت الخطوط العربية
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -q fonts-noto-core fonts-noto fonts-noto-extra 2>/dev/null || true
+          sudo apt-get install -y -q fonts-hosny-amiri fonts-noto-core 2>/dev/null || true
           fc-cache -fv 2>/dev/null || true
-      
-      - name: 💾 استعادة قاعدة البيانات المؤقتة
-        uses: actions/cache@v3
+
+      - name: 💾 استعادة قاعدة البيانات
+        uses: actions/cache@v4
         with:
           path: /tmp/news_cache.db
-          key: news-cache-${{ github.run_id }}
+          key: news-db-v2-${{ github.run_id }}
           restore-keys: |
-            news-cache-
-      
-      - name: 💾 استعادة حالة البرنامج
-        uses: actions/cache@v3
-        with:
-          path: /tmp/publisher_state.json
-          key: publisher-state-${{ github.run_id }}
-          restore-keys: |
-            publisher-state-
-      
-      - name: ⚡ بدء النشر السريع جداً - معالجة متوازية
+            news-db-v2-
+
+      - name: 🚀 تشغيل نظام النشر المستمر
         env:
           PAGE_SALSSAL: ${{ secrets.PAGE_SALSSAL }}
           PAGE_CHAI: ${{ secrets.PAGE_CHAI }}
           PAGE_TABOGA: ${{ secrets.PAGE_TABOGA }}
           PAGE_TEIN: ${{ secrets.PAGE_TEIN }}
         run: |
-          echo "⚡ بدء النشر - النسخة 22 مع التصاميم الاحترافية وبدون ذكر المصدر..."
-          python publisher_v22.py
-        timeout-minutes: 1440
+          echo "🚀 بدء النشر المستمر - النسخة 23..."
+          python publisher_v23.py
+        timeout-minutes: 340
         continue-on-error: true
-      
-      - name: 💾 حفظ قاعدة البيانات في التخزين المؤقت
+
+      - name: 💾 حفظ قاعدة البيانات
         if: always()
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/news_cache.db
-          key: news-cache-${{ github.run_id }}
-      
-      - name: 💾 حفظ حالة البرنامج في التخزين المؤقت
-        if: always()
-        uses: actions/cache@v3
-        with:
-          path: /tmp/publisher_state.json
-          key: publisher-state-${{ github.run_id }}
-      
-      - name: 🔄 إعادة تشغيل تلقائية عند الخروج
+          key: news-db-v2-${{ github.run_id }}
+
+      - name: 🔄 تأكيد إعادة التشغيل
         if: always()
         run: |
-          echo "✅ انتهت الدورة - سيتم إعادة التشغيل تلقائياً في الدقيقة القادمة"
+          echo "✅ انتهت الدورة - سيتم إعادة التشغيل تلقائياً خلال 5 دقائق"
