@@ -1,0 +1,82 @@
+name: ⚡ نشر الأخبار السريع جداً 24/7 - v21 معالجة متوازية
+
+on:
+  workflow_dispatch:
+  schedule:
+    # تشغيل كل 10 ثواني - نشر سريع جداً
+    - cron: '*/1 * * * *'
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1440  # 24 ساعة
+    
+    steps:
+      - name: 📥 استخراج الملفات
+        uses: actions/checkout@v4
+      
+      - name: 🐍 إعداد Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: 📦 تثبيت المكتبات
+        run: |
+          pip install -q requests feedparser beautifulsoup4 Pillow arabic-reshaper python-bidi lxml
+      
+      - name: 🎨 تثبيت الخطوط العربية
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -q fonts-noto-core fonts-noto fonts-noto-extra 2>/dev/null || true
+          fc-cache -fv 2>/dev/null || true
+      
+      - name: 💾 استعادة قاعدة البيانات المؤقتة
+        uses: actions/cache@v3
+        with:
+          path: /tmp/news_cache.db
+          key: news-cache-${{ github.run_id }}
+          restore-keys: |
+            news-cache-
+      
+      - name: 💾 استعادة حالة البرنامج
+        uses: actions/cache@v3
+        with:
+          path: /tmp/publisher_state.json
+          key: publisher-state-${{ github.run_id }}
+          restore-keys: |
+            publisher-state-
+      
+      - name: ⚡ بدء النشر السريع جداً - معالجة متوازية
+        env:
+          PAGE_SALSSAL: ${{ secrets.PAGE_SALSSAL }}
+          PAGE_CHAI: ${{ secrets.PAGE_CHAI }}
+          PAGE_TABOGA: ${{ secrets.PAGE_TABOGA }}
+          PAGE_TEIN: ${{ secrets.PAGE_TEIN }}
+        run: |
+          echo "⚡ بدء النشر السريع - النسخة 21 مع المعالجة المتوازية..."
+          python publisher_v21.py
+        timeout-minutes: 1440
+        continue-on-error: true
+      
+      - name: 💾 حفظ قاعدة البيانات في التخزين المؤقت
+        if: always()
+        uses: actions/cache@v3
+        with:
+          path: /tmp/news_cache.db
+          key: news-cache-${{ github.run_id }}
+      
+      - name: 💾 حفظ حالة البرنامج في التخزين المؤقت
+        if: always()
+        uses: actions/cache@v3
+        with:
+          path: /tmp/publisher_state.json
+          key: publisher-state-${{ github.run_id }}
+      
+      - name: 🔄 إعادة تشغيل تلقائية عند الخروج
+        if: always()
+        run: |
+          echo "✅ انتهت الدورة - سيتم إعادة التشغيل تلقائياً في الدقيقة القادمة"
